@@ -8,129 +8,142 @@ window.addEventListener('scroll', function () {
     }
 });
 
-// Smooth scrolling for anchor links (simplified and robust)
+// Smooth scrolling for anchor links (event delegation for robustness)
+document.addEventListener('click', function (e) {
+    // Only handle left-clicks and ignore if modifier keys are pressed (for accessibility)
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+
+    // Find the closest anchor with an in-page hash link
+    const anchor = e.target.closest('a[href^="#"]');
+    if (!anchor) return;
+
+    // Ensure the anchor is actually in the document (not in a shadow DOM or template)
+    if (!document.body.contains(anchor)) return;
+
+    const targetId = anchor.getAttribute('href');
+    // Only handle in-page anchors, not just '#'
+    if (targetId && targetId.startsWith('#') && targetId.length > 1) {
+        const targetElement = document.querySelector(targetId);
+        if (targetElement) {
+            e.preventDefault();
+            // Get navbar height dynamically
+            const navbar = document.querySelector('.navbar');
+            const navbarHeight = navbar ? navbar.offsetHeight : 80;
+
+            // Scroll to the element, then offset for navbar
+            const elementTop = targetElement.getBoundingClientRect().top + window.pageYOffset;
+            window.scrollTo({
+                top: elementTop - navbarHeight,
+                behavior: 'smooth'
+            });
+        }
+    } else if (targetId === '#') {
+        // If no element found and href is '#', scroll to top
+        e.preventDefault();
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    }
+});
+
+
+// Guide form submission
 document.addEventListener('DOMContentLoaded', function () {
-    // Smooth scroll for all anchor links
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
+    const guideForm = document.getElementById('guideForm');
+    if (guideForm) {
+        guideForm.addEventListener('submit', function (e) {
             e.preventDefault();
 
-            const targetId = this.getAttribute('href');
-            if (targetId === '#') return; // Skip empty hashes
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+            submitBtn.disabled = true;
 
-            const targetElement = document.querySelector(targetId);
-            if (targetElement) {
-                const navbar = document.querySelector('.navbar');
-                const navbarHeight = navbar ? navbar.offsetHeight : 80;
-
-                const targetPosition = targetElement.getBoundingClientRect().top + window.pageYOffset - navbarHeight;
-
-                window.scrollTo({
-                    top: targetPosition,
-                    behavior: 'smooth'
-                });
-
-                // Update URL hash without jumping
-                history.pushState(null, null, targetId);
-            }
+            setTimeout(() => {
+                alert('Thank you! Your free guide has been sent to your email.');
+                this.reset();
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }, 2000);
         });
-    });
-});
-// Guide form submission
-const guideForm = document.getElementById('guideForm');
-if (guideForm) {
-    guideForm.addEventListener('submit', function (e) {
-        e.preventDefault();
+    }
 
-        const submitBtn = this.querySelector('button[type="submit"]');
-        const originalText = submitBtn.innerHTML;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
-        submitBtn.disabled = true;
+    // FAQ functionality (keep your existing FAQ code here)
+    const faqItems = document.querySelectorAll('.faq-item');
+    faqItems.forEach(item => {
+        const question = item.querySelector('.faq-question');
+        const answer = item.querySelector('.faq-answer');
+        const icon = item.querySelector('.faq-icon');
 
-        setTimeout(() => {
-            alert('Thank you! Your free guide has been sent to your email.');
-            this.reset();
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
-        }, 2000);
-    });
-}
+        question.addEventListener('click', function () {
+            faqItems.forEach(otherItem => {
+                if (otherItem !== item) {
+                    const otherAnswer = otherItem.querySelector('.faq-answer');
+                    const otherIcon = otherItem.querySelector('.faq-icon');
+                    otherAnswer.classList.remove('active');
+                    otherIcon.classList.remove('fa-minus');
+                    otherIcon.classList.add('fa-plus');
+                    otherIcon.style.transform = 'rotate(0deg)';
+                }
+            });
 
-// FAQ functionality
-const faqItems = document.querySelectorAll('.faq-item');
-faqItems.forEach(item => {
-    const question = item.querySelector('.faq-question');
-    const answer = item.querySelector('.faq-answer');
-    const icon = item.querySelector('.faq-icon');
-
-    question.addEventListener('click', function () {
-        faqItems.forEach(otherItem => {
-            if (otherItem !== item) {
-                const otherAnswer = otherItem.querySelector('.faq-answer');
-                const otherIcon = otherItem.querySelector('.faq-icon');
-                otherAnswer.classList.remove('active');
-                otherIcon.classList.remove('fa-minus');
-                otherIcon.classList.add('fa-plus');
-                otherIcon.style.transform = 'rotate(0deg)';
-            }
-        });
-
-        const isActive = answer.classList.contains('active');
-        if (isActive) {
-            answer.classList.remove('active');
-            icon.classList.remove('fa-minus');
-            icon.classList.add('fa-plus');
-            icon.style.transform = 'rotate(0deg)';
-        } else {
-            answer.classList.add('active');
-            icon.classList.remove('fa-plus');
-            icon.classList.add('fa-minus');
-            icon.style.transform = 'rotate(180deg)';
-        }
-    });
-});
-
-// FAQ Search
-const faqSearch = document.getElementById('faqSearch');
-if (faqSearch) {
-    faqSearch.addEventListener('input', function () {
-        const searchTerm = this.value.toLowerCase().trim();
-        const faqItems = document.querySelectorAll('.faq-item');
-
-        faqItems.forEach(item => {
-            const question = item.querySelector('.faq-question').textContent.toLowerCase();
-            const answer = item.querySelector('.faq-answer-content').textContent.toLowerCase();
-
-            if (question.includes(searchTerm) || answer.includes(searchTerm)) {
-                item.style.display = 'block';
+            const isActive = answer.classList.contains('active');
+            if (isActive) {
+                answer.classList.remove('active');
+                icon.classList.remove('fa-minus');
+                icon.classList.add('fa-plus');
+                icon.style.transform = 'rotate(0deg)';
             } else {
-                item.style.display = 'none';
+                answer.classList.add('active');
+                icon.classList.remove('fa-plus');
+                icon.classList.add('fa-minus');
+                icon.style.transform = 'rotate(180deg)';
             }
         });
     });
-}
 
-// Scroll animations
-function checkScroll() {
-    const elements = document.querySelectorAll('.fade-in');
-    elements.forEach(element => {
-        const position = element.getBoundingClientRect().top;
-        const screenPosition = window.innerHeight / 1.3;
-        if (position < screenPosition) {
-            element.style.opacity = '1';
-            element.style.transform = 'translateY(0)';
-        }
+    // FAQ Search
+    const faqSearch = document.getElementById('faqSearch');
+    if (faqSearch) {
+        faqSearch.addEventListener('input', function () {
+            const searchTerm = this.value.toLowerCase().trim();
+            const faqItems = document.querySelectorAll('.faq-item');
+
+            faqItems.forEach(item => {
+                const question = item.querySelector('.faq-question').textContent.toLowerCase();
+                const answer = item.querySelector('.faq-answer-content').textContent.toLowerCase();
+
+                if (question.includes(searchTerm) || answer.includes(searchTerm)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+    }
+
+    // Scroll animations
+    function checkScroll() {
+        const elements = document.querySelectorAll('.fade-in');
+        elements.forEach(element => {
+            const position = element.getBoundingClientRect().top;
+            const screenPosition = window.innerHeight / 1.3;
+            if (position < screenPosition) {
+                element.style.opacity = '1';
+                element.style.transform = 'translateY(0)';
+            }
+        });
+    }
+
+    document.querySelectorAll('.fade-in').forEach(el => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(30px)';
+        el.style.transition = 'opacity 0.8s ease, transform 0.8s ease';
     });
-}
 
-document.querySelectorAll('.fade-in').forEach(el => {
-    el.style.opacity = '0';
-    el.style.transform = 'translateY(30px)';
-    el.style.transition = 'opacity 0.8s ease, transform 0.8s ease';
-});
-
-window.addEventListener('scroll', checkScroll);
-window.addEventListener('load', checkScroll);
+    window.addEventListener('scroll', checkScroll);
+    window.addEventListener('load', checkScroll);
 });
 
 // Scroll to guide function
